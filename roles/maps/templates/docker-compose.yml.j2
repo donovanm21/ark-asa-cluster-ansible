@@ -28,6 +28,10 @@ services:
     image: {{ asa_image }}
     container_name: asa-{{ item.map_name | lower }}
     hostname: asa-{{ item.map_name | lower }}
+    # The image ships with CMD=/bin/bash and no ENTRYPOINT — without this
+    # override the container exits immediately on boot. start_server lives
+    # in the image at /usr/bin/start_server and reads ASA_START_PARAMS.
+    entrypoint: /usr/bin/start_server
     restart: unless-stopped
     user: "1000:1000"
     stop_grace_period: 60s
