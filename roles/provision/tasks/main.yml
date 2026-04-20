@@ -49,15 +49,8 @@
 # download) cumulatively stalls the entire VM and triggers a hypervisor
 # watchdog freeze. See: https://docs.kernel.org/x86/buslock.html
 - name: Disable split-lock mitigation (Wine/Proton needs warn-only)
-  ansible.posix.sysctl:
-    name: kernel.split_lock_mitigate
-    value: '0'
-    state: present
-    sysctl_file: /etc/sysctl.d/99-asa-split-lock.conf
-    reload: true
-  ignore_errors: true   # ansible.posix may not be installed; fall through
-
-- name: Disable split-lock mitigation (fallback when ansible.posix unavailable)
+  # Plain `copy` + `sysctl -p` instead of ansible.posix.sysctl so we don't
+  # add a collection dependency for a single-line file.
   copy:
     dest: /etc/sysctl.d/99-asa-split-lock.conf
     content: |
