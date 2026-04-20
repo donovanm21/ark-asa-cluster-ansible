@@ -59,14 +59,14 @@
 
 - name: Create compose + env directories
   file:
-    path: "{{ item }}"
+    path: "{{ item.path }}"
     state: directory
     owner: root
-    group: root
-    mode: '0755'
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
   loop:
-    - "{{ asa_compose_dir }}"
-    - "{{ asa_env_dir }}"
+    - { path: "{{ asa_compose_dir }}", group: root, mode: '0755' }
+    - { path: "{{ asa_env_dir }}",     group: "{{ asa_group }}", mode: '0750' }
 
 - name: Create per-map data directories
   file:
@@ -92,13 +92,13 @@
 
 # --- env + compose rendering --------------------------------------------------
 
-- name: Render per-map env file (passwords + tunables, mode 0600)
+- name: Render per-map env file (passwords + tunables, mode 0640)
   template:
     src: map.env.j2
     dest: "{{ asa_env_dir }}/{{ item.map_name }}.env"
     owner: root
-    group: root
-    mode: '0600'
+    group: "{{ asa_group }}"
+    mode: '0640'
   loop: "{{ maps }}"
   loop_control:
     label: "{{ item.map_name }}"
