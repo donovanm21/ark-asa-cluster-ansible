@@ -36,7 +36,11 @@ If you manage your own firewall (UFW, nftables, hardware firewall), set `manage_
 
 ### Container image trust
 
-The default image is `mschnitzer/asa-linux-server:latest` from Docker Hub. It's a community image — you're trusting its maintainer with code that runs as the `asa` user inside the container. Pin to a specific digest in `group_vars/all.yml` (`asa_image: mschnitzer/asa-linux-server@sha256:...`) for reproducibility and to opt out of surprise upgrades.
+The default image is `mschnitzer/asa-linux-server:latest` from Docker Hub. It's a community image — you're trusting its maintainer with code that runs as uid 25000 (the host's `asa` user) inside the container. Pin to a specific digest in `group_vars/all.yml` (`asa_image: mschnitzer/asa-linux-server@sha256:...`) for reproducibility and to opt out of surprise upgrades.
+
+### Split-lock mitigation disabled
+
+The provision role sets `kernel.split_lock_mitigate=0` so Wine/Proton can run the ASA Windows binaries without the kernel rate-limiting them into a VM-wide stall. The trade-off: a malicious process could in theory issue split-lock atomics to slow down the host slightly. On a single-purpose game host this is a non-issue; on a shared host, weigh whether you want the mitigation. Setting back to `1` is safe but will revive the freeze pattern under ASA load.
 
 ## Reporting a vulnerability
 

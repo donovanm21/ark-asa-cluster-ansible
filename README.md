@@ -29,7 +29,8 @@ It's a self-hosted alternative to commercial offerings (Nitrado, GPortal): you b
 - **Fully automated lifecycle** — the cluster keeps itself alive after `ansible-playbook` exits:
   - Daily restart + tar-backup + image-pull pipeline (with in-game RCON broadcasts)
   - Hourly image-update check — when `docker pull` reports a new digest, the daily pipeline kicks
-  - 5-minute crash watchdog — a dead container comes back on its own
+  - Docker `restart: on-failure:5` for fast intra-session crash recovery; `asa_watchdog.sh` every 5 min as the safety net
+  - Staggered boot at `@reboot` (30 s between maps) so restored hosts don't bury the hypervisor I/O queue
   - Optional Discord webhook notifications on lifecycle events
   - logrotate for each map's server logs
 - **CI/CD in the box** — GitHub Actions workflows lint, syntax-check, and secret-scan on every push
@@ -117,7 +118,7 @@ The playbook installs Docker Engine + the compose plugin and pre-pulls the ASA i
 
 Per-role documentation:
 
-- [roles/provision/README.md](roles/provision/README.md) — OS deps, asa user (uid 1000), sudoers, firewall
+- [roles/provision/README.md](roles/provision/README.md) — OS deps, asa user (uid 25000 to match container), sudoers, split-lock sysctl, firewall
 - [roles/docker/README.md](roles/docker/README.md) — Docker Engine + compose plugin + image pre-pull
 - [roles/maps/README.md](roles/maps/README.md) — per-map compose, env, Game.ini, mods, orphan reconciliation
 - [roles/system/README.md](roles/system/README.md) — crontab, watchdog, RCON wrapper, logrotate, backup scripts
@@ -135,6 +136,16 @@ maps:
 ```
 
 Mod updates ride along with the daily restart-update pipeline — when a map restarts, ASA re-checks each mod's version against CurseForge.
+
+## Operational notes from real-world deploys
+
+A few things you'll want to know before you put this in front of players:
+
+- **Split-lock mitigation** — Ubuntu 24.04+ defaults `kernel.split_lock_mitigate=1`, which sleeps Wine/Proton threads ~10 ms per split-lock atomic. Under sustained load (map load, content download) this stalls every CPU long enough that the hypervisor watchdog freezes the guest. The provision role disables it (`=0`, warn-only). If you see "host crashed" reports, double-check this is applied.
+- **Hardlink seeding** — fresh map installs are ~13 GB and take 10-15 min via SteamCMD. With `map_seed_from: <other_map>` (auto-set by the bootstrap wizard for maps 2..N), a new map is `cp -al`'d from an existing install in seconds. Disk savings are dramatic: a 3-map cluster lives in ~28 GB instead of ~85 GB.
+- **Boot pile-up** — every container's `restart: on-failure:5` deliberately does NOT auto-start when the docker daemon comes back after a host reboot. With `unless-stopped` we observed every map booting simultaneously and crashing the VM. Boot ordering is owned by `asa_map_start.sh` at `@reboot` (staggered 30 s between maps).
+- **Hypervisor sizing** — ASA wants 4+ vCPUs and ~8 GiB RAM per concurrently running map. ~2 vCPUs is not enough for even one map under Proton and will hang during map load. Bursty disk I/O during fresh installs (parallel SteamCMD) can also trigger hypervisor I/O watchdog freezes — bringing maps up sequentially (or using hardlink seeding) avoids this.
+- **A2S query is silent by design** — ASA uses Epic/EOS for server discovery, not Source A2S. `nc -u … 27015` returns nothing; clients find the server via the in-game browser.
 
 ## Continuous integration
 
