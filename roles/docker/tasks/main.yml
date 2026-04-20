@@ -69,13 +69,8 @@
   when: manage_docker_group | default(true)
 
 - name: Pre-pull the ASA server image
-  community.docker.docker_image:
-    name: "{{ asa_image }}"
-    source: pull
-  ignore_errors: true
-  # community.docker may not be installed; fall through to a shell pull.
-
-- name: Pre-pull the ASA server image (fallback)
+  # Plain `docker pull` instead of community.docker.docker_image so we don't
+  # add a collection dependency for a single command.
   command: "docker pull {{ asa_image }}"
   changed_when: false
   failed_when: false
