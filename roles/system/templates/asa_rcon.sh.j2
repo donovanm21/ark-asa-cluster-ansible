@@ -34,7 +34,10 @@ run_one() {
         return 1
     fi
     echo "[$map] $cmd"
-    docker run --rm --network=host "$RCON_IMAGE" \
+    # outdead/rcon has empty ENTRYPOINT and CMD=[/rcon], so when we pass
+    # CLI args on `docker run` they replace the CMD entirely. Pin the
+    # entrypoint to the rcon binary so our args always go to it.
+    docker run --rm --network=host --entrypoint /rcon "$RCON_IMAGE" \
         -a "127.0.0.1:$port" -p "$pwd" "$cmd" 2>&1 || true
 }
 
