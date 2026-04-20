@@ -55,12 +55,13 @@ Save data under `{{ asa_data_root }}/<map>/server-files/ShooterGame/Saved/` is p
 
 ## Restart policy
 
-The rendered compose file uses `restart: "no"` (deliberately not `unless-stopped`). After a host reboot, simultaneous map-loads have been observed to bury the hypervisor I/O queue and freeze the VM. Lifecycle is owned instead by:
+The rendered compose file uses `restart: on-failure:5` (deliberately not `unless-stopped`):
 
-- `asa_map_start.sh` at `@reboot` — staggered (30 s between maps)
-- `asa_watchdog.sh` every 5 min — sole crash-recovery mechanism
+- **Restarts on crash**, capped at 5 attempts to avoid death-spiralling on a persistently broken container.
+- **Does NOT auto-start when the docker daemon comes back** after a host reboot. With `unless-stopped` every map was brought up simultaneously on boot, which buried the hypervisor I/O queue under parallel ASA map-loads and froze the VM.
+- Doesn't restart after an explicit `docker stop`.
 
-The trade-off: a crashed container takes up to 5 min to recover instead of being instantly restarted by docker. For a homelab cluster that's fine; for a production deploy you may want to tighten `watchdog_interval_minutes` to 1.
+Boot-time bring-up is owned by `asa_map_start.sh` at `@reboot` (staggered, 30 s between maps). `asa_watchdog.sh` every 5 min is the safety net beyond the 5-attempt cap.
 
 ## Handlers
 
