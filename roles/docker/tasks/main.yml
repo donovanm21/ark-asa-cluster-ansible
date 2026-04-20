@@ -59,6 +59,15 @@
     state: started
     enabled: true
 
+# Group membership has to come after docker-ce is installed (which creates
+# the `docker` group) — that's why this lives here, not in provision.
+- name: Add asa user to docker group
+  user:
+    name: "{{ asa_user }}"
+    groups: docker
+    append: true
+  when: manage_docker_group | default(true)
+
 - name: Pre-pull the ASA server image
   community.docker.docker_image:
     name: "{{ asa_image }}"

@@ -7,11 +7,6 @@
 # Disable if your site has its own sudoers management.
 manage_sudoers: true
 
-# Add the asa user to the docker group so non-root cron jobs can run
-# `docker compose ...` without sudo. Disable if you'd rather drive
-# everything as root.
-manage_docker_group: true
-
 # Remove UFW. Retained for backwards compatibility with the original
 # playbook; consider disabling and adding explicit UFW rules for the
 # ASA ports instead.

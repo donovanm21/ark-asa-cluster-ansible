@@ -4,9 +4,10 @@ Bootstraps the target host for running ASA containers:
 
 1. Installs base dependencies: `htop`, `git`, `curl`, `lsof`, `bzip2`, `ca-certificates`, `jq`, `tar`.
 2. Creates the asa server user (`{{ asa_user }}`, default `asa`) with home `{{ asa_home }}`, pinned to uid/gid 1000 so its uid matches the container's internal `gameserver` user.
-3. Adds the asa user to the `docker` group (the `docker` role creates the group).
-4. Drops a NOPASSWD sudo rule into `/etc/sudoers.d/{{ asa_user }}` (gated on `manage_sudoers`).
-5. Purges UFW (gated on `manage_firewall`).
+3. Drops a NOPASSWD sudo rule into `/etc/sudoers.d/{{ asa_user }}` (gated on `manage_sudoers`).
+4. Purges UFW (gated on `manage_firewall`).
+
+The `asa` user is added to the `docker` group by the `docker` role (after `docker-ce` installs and creates the group).
 
 ## Why uid 1000?
 

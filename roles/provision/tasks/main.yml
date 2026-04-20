@@ -42,13 +42,6 @@
     name: "{{ asa_group }}"
     gid: 1000
 
-- name: Add asa user to docker group
-  user:
-    name: "{{ asa_user }}"
-    groups: docker
-    append: true
-  when: manage_docker_group | default(true)
-
 # NOPASSWD sudo is a convenience for cron-driven docker compose lifecycle
 # commands. Scope it to a drop-in so it's easy to audit and revert.
 - name: Grant passwordless sudo to the asa user
