@@ -1,0 +1,3 @@
+---
+# Defaults for the docker role. The image to pull lives in group_vars/all.yml
+# (asa_image) so other roles can reference the same value.

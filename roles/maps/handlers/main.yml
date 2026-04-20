@@ -1,0 +1,8 @@
+---
+# When config or compose changes for a map, recreate that map's container.
+# `up -d` is a no-op when nothing changed and a recreate when something did.
+- name: restart map
+  command: "docker compose -f {{ asa_compose_dir }}/{{ item.map_name }}.yml --env-file {{ asa_env_dir }}/{{ item.map_name }}.env up -d --force-recreate"
+  loop: "{{ maps }}"
+  loop_control:
+    label: "{{ item.map_name }}"

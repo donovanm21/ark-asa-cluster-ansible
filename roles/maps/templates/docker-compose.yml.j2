@@ -1,0 +1,45 @@
+# docker-compose for ASA map "{{ item.map_name }}" ({{ item.map_name_ark }}).
+# Rendered by ansible — edits will be overwritten on the next deploy.
+#
+# Drive lifecycle with:
+#   docker compose -f {{ asa_compose_dir }}/{{ item.map_name }}.yml \
+#                  --env-file {{ asa_env_dir }}/{{ item.map_name }}.env up -d
+{% set start_params = [
+  item.map_name_ark ~ '?listen',
+  '?SessionName="' ~ location ~ ' ' ~ server_tag ~ ' ' ~ item.map_name ~ ' ' ~ server_mode ~ '"',
+  '?Port=' ~ item.map_game_port,
+  '?QueryPort=' ~ item.map_query_port,
+  '?RCONPort=' ~ item.map_rcon_port,
+  '?RCONEnabled=True',
+  '?MaxPlayers=' ~ item.map_max_players,
+  '?ServerAdminPassword=' ~ item.map_admin_password,
+] | join('') %}
+{% if item.map_server_password is defined and item.map_server_password %}
+{%   set start_params = start_params ~ '?ServerPassword=' ~ item.map_server_password %}
+{% endif %}
+{% set start_params = start_params ~ ' -ClusterId=' ~ item.cluster_name ~ ' -ClusterDirOverride=/home/gameserver/cluster-shared' %}
+{% if item.map_mods_enabled is defined and item.map_mods_enabled %}
+{%   set start_params = start_params ~ ' -mods=' ~ item.map_mods_enabled %}
+{% endif %}
+{% set start_params = start_params ~ ' ' ~ asa_extra_start_flags ~ ' -server -log' %}
+
+services:
+  asa-{{ item.map_name | lower }}:
+    image: {{ asa_image }}
+    container_name: asa-{{ item.map_name | lower }}
+    hostname: asa-{{ item.map_name | lower }}
+    restart: unless-stopped
+    user: "1000:1000"
+    stop_grace_period: 60s
+    environment:
+      ASA_START_PARAMS: '{{ start_params }}'
+      ENABLE_DEBUG: "0"
+    ports:
+      - "{{ item.map_game_port }}:{{ item.map_game_port }}/udp"
+      - "{{ item.map_query_port }}:{{ item.map_query_port }}/udp"
+      - "{{ item.map_rcon_port }}:{{ item.map_rcon_port }}/tcp"
+    volumes:
+      - {{ asa_data_root }}/{{ item.map_name }}/steam:/home/gameserver/Steam
+      - {{ asa_data_root }}/{{ item.map_name }}/steamcmd:/home/gameserver/steamcmd
+      - {{ asa_data_root }}/{{ item.map_name }}/server-files:/home/gameserver/server-files
+      - {{ asa_cluster_root }}:/home/gameserver/cluster-shared

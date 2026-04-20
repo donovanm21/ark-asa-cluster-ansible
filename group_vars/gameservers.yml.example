@@ -1,0 +1,109 @@
+---
+# Copy this file to group_vars/gameservers.yml and edit for your deployment.
+# The real gameservers.yml is gitignored so passwords and SteamIDs never
+# leak into the repo.
+
+# Server identity — shows up in Steam browser and Discord notifications.
+location: "XX"            # 2-letter region code, e.g. "US", "EU", "ZA"
+server_tag: "MyCluster"   # short tag shown in SessionName
+server_mode: "PvE"        # "PvE" or "PvP"
+
+# Optional Discord webhook for server up/down/restart notifications.
+# discord_webhook_url: "https://discord.com/api/webhooks/XXXXX/YYYYY"
+
+# Optional gameplay tuning — sensible defaults live in roles/maps/defaults/.
+# Uncomment and override only the knobs you actually want to change.
+# taming_speed_multiplier: 4.5
+# harvest_amount_multiplier: 2
+# harvest_health_multiplier: 2
+# xp_multiplier: 1
+# max_tamed_dinos: 5000
+# override_official_difficulty: 5
+# player_damage_multiplier: 1.0
+# pve_dino_decay_period_multiplier: 5
+# pve_structure_decay_period_multiplier: 2.5
+# resources_respawn_period_multiplier: 0.75
+
+# Message of the day shown on player join.
+# motd_duration: 15
+# motd_message: "Welcome to my server!"
+
+# Maps to run. Each entry creates one container.
+# Game/Query/RCON ports must be unique per map across the host.
+# map_mods_enabled is a comma-separated list of CurseForge mod IDs (numeric);
+# ASA's built-in mod system downloads them via -mods= on container start.
+# cluster_name groups maps that share tames/players via cross-map transfer.
+maps:
+  - map_name_ark: "TheIsland_WP"
+    map_name: "TheIsland"
+    map_game_port: 7777
+    map_query_port: 27015
+    map_rcon_port: 27020
+    map_admin_password: "CHANGE_ME"
+    map_max_players: 70
+    map_mods_enabled: ""
+    cluster_name: "MyCluster"
+  # - map_name_ark: "ScorchedEarth_WP"
+  #   map_name: "ScorchedEarth"
+  #   map_game_port: 7779
+  #   map_query_port: 27017
+  #   map_rcon_port: 27021
+  #   map_admin_password: "CHANGE_ME"
+  #   map_max_players: 70
+  #   map_mods_enabled: ""
+  #   cluster_name: "MyCluster"
+  # - map_name_ark: "Aberration_WP"
+  #   map_name: "Aberration"
+  #   map_game_port: 7781
+  #   map_query_port: 27019
+  #   map_rcon_port: 27022
+  #   map_admin_password: "CHANGE_ME"
+  #   map_max_players: 70
+  #   map_mods_enabled: ""
+  #   cluster_name: "MyCluster"
+  # - map_name_ark: "Extinction_WP"
+  #   map_name: "Extinction"
+  #   map_game_port: 7783
+  #   map_query_port: 27021
+  #   map_rcon_port: 27023
+  #   map_admin_password: "CHANGE_ME"
+  #   map_max_players: 70
+  #   map_mods_enabled: ""
+  #   cluster_name: "MyCluster"
+  # - map_name_ark: "TheCenter_WP"
+  #   map_name: "TheCenter"
+  #   map_game_port: 7785
+  #   map_query_port: 27023
+  #   map_rcon_port: 27024
+  #   map_admin_password: "CHANGE_ME"
+  #   map_max_players: 70
+  #   map_mods_enabled: ""
+  #   cluster_name: "MyCluster"
+  # - map_name_ark: "Astraeos_WP"
+  #   map_name: "Astraeos"
+  #   map_game_port: 7787
+  #   map_query_port: 27025
+  #   map_rcon_port: 27025
+  #   map_admin_password: "CHANGE_ME"
+  #   map_max_players: 70
+  #   map_mods_enabled: ""
+  #   cluster_name: "MyCluster"
+
+# SteamIDs of players granted in-game admin (cheat commands).
+# Get one from https://steamid.io — the 17-digit number.
+admins: []
+# admins:
+#   - 76561190000000001
+#   - 76561190000000002
+
+# Lifecycle automation — defaults documented here for visibility.
+# Override only if you want different behaviour.
+#
+# enable_daily_restart: true
+# daily_update_hour: 4          # 04:00 server time: stop -> backup -> pull -> restart
+#
+# enable_dino_wipe: false
+# dino_wipe_hours: [0, 12]
+#
+# enable_watchdog: true
+# watchdog_interval_minutes: 5

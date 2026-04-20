@@ -1,0 +1,29 @@
+{% set update_hour = daily_update_hour | default(4) %}
+{% set wipe_hours = dino_wipe_hours | default([0, 12]) %}
+# Bring containers up at boot (belt-and-braces; restart: unless-stopped covers most cases).
+@reboot /bin/bash {{ asa_home }}/bin/asa_map_start.sh
+
+{% if enable_update_checker | default(True) %}
+## Hourly image-update check
+59 * * * * /bin/bash {{ asa_home }}/bin/asa_update_checker.sh
+{% endif %}
+
+{% if enable_watchdog | default(True) %}
+## Crash watchdog — restarts containers that aren't running
+*/{{ watchdog_interval_minutes | default(5) }} * * * * /bin/bash {{ asa_home }}/bin/asa_watchdog.sh
+{% endif %}
+
+{% if enable_daily_restart | default(True) %}
+## Daily restart + image pull (runs at {{ '%02d'|format(update_hour) }}:00 server time)
+30 {{ (update_hour - 1) % 24 }} * * * /bin/bash {{ asa_home }}/bin/asa_system_update.sh
+{% endif %}
+
+{% if enable_dino_wipe | default(False) %}
+## Wild dino + egg wipes
+{% for hour in wipe_hours %}
+30 {{ (hour - 1) % 24 }} * * * {{ asa_home }}/bin/asa_rcon.sh @all "broadcast Dino Wipe in 30mins"
+45 {{ (hour - 1) % 24 }} * * * {{ asa_home }}/bin/asa_rcon.sh @all "broadcast Dino Wipe in 15mins"
+55 {{ (hour - 1) % 24 }} * * * {{ asa_home }}/bin/asa_rcon.sh @all "broadcast Dino Wipe in 5mins"
+0 {{ hour }} * * * /bin/bash {{ asa_home }}/bin/asa_dino_wipe.sh
+{% endfor %}
+{% endif %}

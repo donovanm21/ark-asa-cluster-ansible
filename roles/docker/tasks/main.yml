@@ -1,0 +1,72 @@
+---
+# Install Docker Engine + the compose plugin from the official Docker apt
+# repository. The distro-packaged docker.io is too old for `docker compose`
+# and the compose v2 plugin we drive from cron.
+
+- name: Install apt prerequisites for the Docker repo
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Ensure /etc/apt/keyrings exists
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Detect distro id for the Docker apt repo
+  set_fact:
+    _docker_distro: "{{ ansible_distribution | lower }}"
+
+- name: Install the Docker apt signing key
+  get_url:
+    url: "https://download.docker.com/linux/{{ _docker_distro }}/gpg"
+    dest: /etc/apt/keyrings/docker.asc
+    mode: '0644'
+    force: false
+
+- name: Add the Docker apt repository
+  apt_repository:
+    repo: >-
+      deb [arch={{ ansible_architecture | replace('x86_64', 'amd64') | replace('aarch64', 'arm64') }}
+      signed-by=/etc/apt/keyrings/docker.asc]
+      https://download.docker.com/linux/{{ _docker_distro }}
+      {{ ansible_distribution_release }} stable
+    filename: docker
+    state: present
+
+- name: Install Docker Engine + compose plugin
+  apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    update_cache: true
+
+- name: Ensure docker daemon is enabled and running
+  service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Pre-pull the ASA server image
+  community.docker.docker_image:
+    name: "{{ asa_image }}"
+    source: pull
+  ignore_errors: true
+  # community.docker may not be installed; fall through to a shell pull.
+
+- name: Pre-pull the ASA server image (fallback)
+  command: "docker pull {{ asa_image }}"
+  changed_when: false
+  failed_when: false

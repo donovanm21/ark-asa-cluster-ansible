@@ -1,0 +1,24 @@
+---
+# Defaults for the system role.
+# Override any of these in group_vars/gameservers.yml.
+
+# Daily restart + update pipeline
+# (03:30 broadcast warnings → 04:00 stop → docker pull → recreate → start)
+enable_daily_restart: true
+daily_update_hour: 4
+
+# Scheduled wild dino wipes (off by default; enable and set hours if desired)
+enable_dino_wipe: false
+dino_wipe_hours: [0, 12]
+
+# Crash-recovery watchdog — checks every N minutes and restarts dead containers
+enable_watchdog: true
+watchdog_interval_minutes: 5
+
+# Hourly check for a newer ASA server image. When `docker pull` reports
+# a new digest, trigger the daily restart-update pipeline.
+enable_update_checker: true
+
+# Image of an RCON client to invoke from the host. Used by the wipe + watchdog
+# helpers. `outdead/rcon` is small (<5 MB) and matches Source RCON.
+asa_rcon_image: "outdead/rcon:latest"

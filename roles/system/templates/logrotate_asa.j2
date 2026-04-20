@@ -1,0 +1,14 @@
+{% for item in maps %}
+{{ asa_data_root }}/{{ item.map_name }}/server-files/ShooterGame/Saved/Logs/*.log {
+    daily
+    rotate 14
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    su {{ asa_user }} {{ asa_group }}
+    create 0644 {{ asa_user }} {{ asa_group }}
+}
+
+{% endfor %}

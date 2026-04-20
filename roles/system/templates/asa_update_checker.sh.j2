@@ -1,0 +1,22 @@
+#!/bin/bash
+# asa_update_checker.sh — hourly check for a newer ASA server image.
+# If `docker pull` reports a new digest, kick off the daily update pipeline.
+# Rendered by ansible — edits will be overwritten on the next deploy.
+
+set -u
+
+IMAGE="{{ asa_image }}"
+SYSTEM_UPDATE="{{ asa_home }}/bin/asa_system_update.sh"
+LAST_DIGEST_FILE="{{ asa_home }}/.asa_last_image_digest"
+
+current=$(docker image inspect --format '{% raw %}{{index .RepoDigests 0}}{% endraw %}' "$IMAGE" 2>/dev/null || true)
+docker pull "$IMAGE" >/dev/null 2>&1 || exit 0
+new=$(docker image inspect --format '{% raw %}{{index .RepoDigests 0}}{% endraw %}' "$IMAGE" 2>/dev/null || true)
+
+if [[ -n "$new" && "$new" != "$current" ]]; then
+    echo "$new" > "$LAST_DIGEST_FILE"
+    logger -t asa-update "image updated ($current -> $new); running system update"
+    "$SYSTEM_UPDATE"
+else
+    echo "no image update"
+fi

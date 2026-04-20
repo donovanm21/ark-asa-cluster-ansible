@@ -1,0 +1,15 @@
+---
+galaxy_info:
+  role_name: maps
+  author: ark-asa-cluster-ansible contributors
+  description: Per-map docker-compose files, Game.ini, GameUserSettings.ini for ASA.
+  license: MIT
+  min_ansible_version: "2.10"
+  platforms:
+    - name: Ubuntu
+      versions: [jammy, noble]
+    - name: Debian
+      versions: [bookworm]
+  galaxy_tags: [ark, asa, gaming, docker, cluster]
+
+dependencies: []

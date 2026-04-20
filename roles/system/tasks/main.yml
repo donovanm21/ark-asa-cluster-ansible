@@ -1,0 +1,88 @@
+---
+# Render the lifecycle scripts + crontab. Scripts live under {{ asa_home }}/bin
+# so the asa user owns them (cron runs them as that user).
+
+- name: Create the asa bin directory
+  file:
+    path: "{{ asa_home }}/bin"
+    state: directory
+    owner: "{{ asa_user }}"
+    group: "{{ asa_group }}"
+    mode: '0755'
+
+- name: Create the backups directory
+  file:
+    path: "{{ asa_home }}/backups"
+    state: directory
+    owner: "{{ asa_user }}"
+    group: "{{ asa_group }}"
+    mode: '0755'
+
+- name: Render the RCON wrapper
+  template:
+    src: asa_rcon.sh.j2
+    dest: "{{ asa_home }}/bin/asa_rcon.sh"
+    owner: "{{ asa_user }}"
+    group: "{{ asa_group }}"
+    mode: '0755'
+
+- name: Copy the wild-dino-wipe script
+  copy:
+    src: scripts/asa_dino_wipe.sh
+    dest: "{{ asa_home }}/bin/asa_dino_wipe.sh"
+    owner: "{{ asa_user }}"
+    group: "{{ asa_group }}"
+    mode: '0755'
+
+- name: Render the per-map start script (boot-time + manual)
+  template:
+    src: asa_map_start.sh.j2
+    dest: "{{ asa_home }}/bin/asa_map_start.sh"
+    owner: "{{ asa_user }}"
+    group: "{{ asa_group }}"
+    mode: '0755'
+
+- name: Render the crash-recovery watchdog
+  template:
+    src: asa_watchdog.sh.j2
+    dest: "{{ asa_home }}/bin/asa_watchdog.sh"
+    owner: "{{ asa_user }}"
+    group: "{{ asa_group }}"
+    mode: '0755'
+
+- name: Render the daily restart-update script
+  template:
+    src: asa_system_update.sh.j2
+    dest: "{{ asa_home }}/bin/asa_system_update.sh"
+    owner: "{{ asa_user }}"
+    group: "{{ asa_group }}"
+    mode: '0755'
+
+- name: Render the update checker (hourly cron — pulls image, restarts if newer)
+  template:
+    src: asa_update_checker.sh.j2
+    dest: "{{ asa_home }}/bin/asa_update_checker.sh"
+    owner: "{{ asa_user }}"
+    group: "{{ asa_group }}"
+    mode: '0755'
+
+- name: Render the logrotate config for ASA logs
+  template:
+    src: logrotate_asa.j2
+    dest: /etc/logrotate.d/asa
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Render the crontab file
+  template:
+    src: crontab.txt.j2
+    dest: "{{ asa_home }}/crontab.txt"
+    owner: "{{ asa_user }}"
+    group: "{{ asa_group }}"
+    mode: '0644'
+  register: crontab_rendered
+
+- name: Import the crontab when it changed
+  command: "crontab -u {{ asa_user }} {{ asa_home }}/crontab.txt"
+  when: crontab_rendered.changed

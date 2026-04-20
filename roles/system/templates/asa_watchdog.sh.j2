@@ -1,0 +1,46 @@
+#!/bin/bash
+# asa_watchdog.sh — restart any ASA container that isn't running.
+# Rendered by ansible — edits will be overwritten on the next deploy.
+#
+# Skip window is the daily-restart hour: during the planned stop, maps
+# are expected to be down, so don't fight the update pipeline.
+
+set -u
+
+COMPOSE_DIR="{{ asa_compose_dir }}"
+ENV_DIR="{{ asa_env_dir }}"
+UPDATE_HOUR={{ daily_update_hour | default(4) }}
+NOW_HOUR=$(date +%-H)
+
+SKIP_START=$(( (UPDATE_HOUR - 1 + 24) % 24 ))
+if [ "$NOW_HOUR" = "$SKIP_START" ] || [ "$NOW_HOUR" = "$UPDATE_HOUR" ]; then
+    exit 0
+fi
+
+notify() {
+    local msg="$1"
+{% if discord_webhook_url is defined and discord_webhook_url %}
+    curl -fsS -H "Content-Type: application/json" \
+        -d "$(printf '{"content": "[watchdog] %s"}' "$msg")" \
+        "{{ discord_webhook_url }}" >/dev/null 2>&1 || true
+{% endif %}
+    logger -t asa-watchdog "$msg"
+}
+
+is_running() {
+    local name=$1
+    docker inspect -f '{% raw %}{{.State.Running}}{% endraw %}' "$name" 2>/dev/null | grep -qx true
+}
+
+{% for map in maps %}
+# ---- {{ map.map_name }} ----
+container="asa-{{ map.map_name | lower }}"
+if ! is_running "$container"; then
+    notify "{{ map.map_name }} ($container) not running — starting"
+    docker compose -f "$COMPOSE_DIR/{{ map.map_name }}.yml" \
+                   --env-file "$ENV_DIR/{{ map.map_name }}.env" up -d \
+        >/dev/null 2>&1 &
+fi
+{% endfor %}
+
+exit 0

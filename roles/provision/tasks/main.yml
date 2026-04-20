@@ -1,0 +1,69 @@
+---
+- name: Install base OS dependencies
+  apt:
+    name:
+      - htop
+      - git
+      - curl
+      - lsof
+      - bzip2
+      - ca-certificates
+      - jq
+      - tar
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Create the asa server group
+  group:
+    name: "{{ asa_group }}"
+    state: present
+
+- name: Create the asa server user account
+  user:
+    name: "{{ asa_user }}"
+    group: "{{ asa_group }}"
+    home: "{{ asa_home }}"
+    shell: /bin/bash
+    state: present
+
+# The container image's internal user is uid/gid 1000. The host bind-mount
+# owner must match or the server can't write saves. We force the host user
+# to 1000 so the mapping is 1:1 without needing remap-userns juggling.
+- name: Pin asa user uid to 1000 for container bind-mount mapping
+  user:
+    name: "{{ asa_user }}"
+    uid: 1000
+    group: "{{ asa_group }}"
+  ignore_errors: false
+
+- name: Pin asa group gid to 1000 for container bind-mount mapping
+  group:
+    name: "{{ asa_group }}"
+    gid: 1000
+
+- name: Add asa user to docker group
+  user:
+    name: "{{ asa_user }}"
+    groups: docker
+    append: true
+  when: manage_docker_group | default(true)
+
+# NOPASSWD sudo is a convenience for cron-driven docker compose lifecycle
+# commands. Scope it to a drop-in so it's easy to audit and revert.
+- name: Grant passwordless sudo to the asa user
+  copy:
+    dest: "/etc/sudoers.d/{{ asa_user }}"
+    content: "{{ asa_user }} ALL=(ALL) NOPASSWD: ALL\n"
+    mode: '0440'
+    validate: 'visudo -cf %s'
+  when: manage_sudoers | default(true)
+
+# UFW removal is opt-in so we don't silently disable a user's firewall.
+# Keep default true to preserve prior behaviour; set `manage_firewall: false`
+# to skip and add explicit UFW rules for your map ports yourself.
+- name: Ensure ufw is removed
+  apt:
+    name: ufw
+    state: absent
+  when: manage_firewall | default(true)

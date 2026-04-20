@@ -1,0 +1,18 @@
+#!/bin/bash
+# asa_map_start.sh — boot-time startup for every configured map.
+# Rendered by ansible — edits will be overwritten on the next deploy.
+#
+# Containers have `restart: unless-stopped` so they normally come back on
+# their own after a host reboot. This script is a belt-and-braces bring-up
+# in case they were explicitly stopped before reboot.
+
+set -u
+
+COMPOSE_DIR="{{ asa_compose_dir }}"
+ENV_DIR="{{ asa_env_dir }}"
+
+{% for item in maps %}
+# ---- {{ item.map_name }} ----
+docker compose -f "$COMPOSE_DIR/{{ item.map_name }}.yml" --env-file "$ENV_DIR/{{ item.map_name }}.env" up -d
+sleep 30
+{% endfor %}

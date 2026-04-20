@@ -1,0 +1,204 @@
+---
+# Reconcile orphan maps: any map whose docker-compose file exists on disk
+# but is NOT in the current `maps:` list gets stopped and its compose +
+# env files removed. Per-map server-files (saves) under {{ asa_data_root }}/<map>/
+# are preserved so the map can be re-added later without losing player data.
+
+- name: Discover existing per-map docker-compose files
+  find:
+    paths: "{{ asa_compose_dir }}"
+    patterns: "*.yml"
+    file_type: file
+  register: _existing_compose_files
+  failed_when: false
+
+- name: Compute orphan maps (on disk but not in configured maps list)
+  set_fact:
+    _orphan_maps: >-
+      {{ (_existing_compose_files.files | default([]))
+         | map(attribute='path') | map('basename')
+         | map('regex_replace', '\.yml$', '') | list
+         | difference(maps | map(attribute='map_name') | list) }}
+
+- name: Report orphan maps about to be stopped + removed
+  debug:
+    msg: "Orphan map: {{ item }} (stop container + delete compose/env; saves preserved)"
+  loop: "{{ _orphan_maps }}"
+  when: _orphan_maps | length > 0
+
+- name: Stop orphan map containers
+  command: "docker compose -f {{ asa_compose_dir }}/{{ item }}.yml down"
+  loop: "{{ _orphan_maps }}"
+  failed_when: false
+  changed_when: true
+
+- name: Remove orphan map compose files
+  file:
+    path: "{{ asa_compose_dir }}/{{ item }}.yml"
+    state: absent
+  loop: "{{ _orphan_maps }}"
+
+- name: Remove orphan map env files
+  file:
+    path: "{{ asa_env_dir }}/{{ item }}.env"
+    state: absent
+  loop: "{{ _orphan_maps }}"
+
+# --- directory layout ---------------------------------------------------------
+
+- name: Create top-level data directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ asa_user }}"
+    group: "{{ asa_group }}"
+    mode: '0755'
+  loop:
+    - "{{ asa_data_root }}"
+    - "{{ asa_cluster_root }}"
+
+- name: Create compose + env directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - "{{ asa_compose_dir }}"
+    - "{{ asa_env_dir }}"
+
+- name: Create per-map data directories
+  file:
+    path: "{{ asa_data_root }}/{{ item.0.map_name }}/{{ item.1 }}"
+    state: directory
+    owner: "{{ asa_user }}"
+    group: "{{ asa_group }}"
+    mode: '0755'
+  loop: "{{ maps | product(['steam', 'steamcmd', 'server-files']) | list }}"
+  loop_control:
+    label: "{{ item.0.map_name }}/{{ item.1 }}"
+
+- name: Create per-map config directory (Windows-style path inside server-files)
+  file:
+    path: "{{ asa_data_root }}/{{ item.map_name }}/server-files/ShooterGame/Saved/Config/WindowsServer"
+    state: directory
+    owner: "{{ asa_user }}"
+    group: "{{ asa_group }}"
+    mode: '0755'
+  loop: "{{ maps }}"
+  loop_control:
+    label: "{{ item.map_name }}"
+
+# --- env + compose rendering --------------------------------------------------
+
+- name: Render per-map env file (passwords + tunables, mode 0600)
+  template:
+    src: map.env.j2
+    dest: "{{ asa_env_dir }}/{{ item.map_name }}.env"
+    owner: root
+    group: root
+    mode: '0600'
+  loop: "{{ maps }}"
+  loop_control:
+    label: "{{ item.map_name }}"
+
+- name: Render per-map docker-compose file
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ asa_compose_dir }}/{{ item.map_name }}.yml"
+    owner: root
+    group: root
+    mode: '0644'
+  loop: "{{ maps }}"
+  loop_control:
+    label: "{{ item.map_name }}"
+  notify: restart map
+
+# --- ini rendering ------------------------------------------------------------
+
+- name: Render per-map GameUserSettings.ini
+  template:
+    src: GameUserSettings.ini.j2
+    dest: "{{ asa_data_root }}/{{ item.map_name }}/server-files/ShooterGame/Saved/Config/WindowsServer/GameUserSettings.ini"
+    owner: "{{ asa_user }}"
+    group: "{{ asa_group }}"
+    mode: '0644'
+  loop: "{{ maps }}"
+  loop_control:
+    label: "{{ item.map_name }}"
+  notify: restart map
+
+- name: Check for per-map GameUserSettings.ini override
+  stat:
+    path: "{{ user_config_dir | default(playbook_dir ~ '/config') }}/maps/{{ item.map_name }}/GameUserSettings.ini"
+  loop: "{{ maps }}"
+  loop_control:
+    label: "{{ item.map_name }}"
+  register: gus_overrides
+
+- name: Overlay per-map GameUserSettings.ini override
+  copy:
+    src: "{{ item.stat.path }}"
+    dest: "{{ asa_data_root }}/{{ item.item.map_name }}/server-files/ShooterGame/Saved/Config/WindowsServer/GameUserSettings.ini"
+    owner: "{{ asa_user }}"
+    group: "{{ asa_group }}"
+    mode: '0644'
+  loop: "{{ gus_overrides.results }}"
+  loop_control:
+    label: "{{ item.item.map_name }}"
+  when: item.stat.exists
+  notify: restart map
+
+- name: Render per-map Game.ini
+  template:
+    src: Game.ini.j2
+    dest: "{{ asa_data_root }}/{{ item.map_name }}/server-files/ShooterGame/Saved/Config/WindowsServer/Game.ini"
+    owner: "{{ asa_user }}"
+    group: "{{ asa_group }}"
+    mode: '0644'
+  loop: "{{ maps }}"
+  loop_control:
+    label: "{{ item.map_name }}"
+  notify: restart map
+
+- name: Check for cluster-wide Game.ini override
+  stat:
+    path: "{{ user_config_dir | default(playbook_dir ~ '/config') }}/Game.ini"
+  register: game_override
+
+- name: Overlay cluster-wide Game.ini override (applied to every map)
+  copy:
+    src: "{{ game_override.stat.path }}"
+    dest: "{{ asa_data_root }}/{{ item.map_name }}/server-files/ShooterGame/Saved/Config/WindowsServer/Game.ini"
+    owner: "{{ asa_user }}"
+    group: "{{ asa_group }}"
+    mode: '0644'
+  loop: "{{ maps }}"
+  loop_control:
+    label: "{{ item.map_name }}"
+  when: game_override.stat.exists
+  notify: restart map
+
+# --- admin list ---------------------------------------------------------------
+
+- name: Render the AllowedCheaterSteamIDs list per map
+  template:
+    src: AllowedCheaterSteamIDs.txt.j2
+    dest: "{{ asa_data_root }}/{{ item.map_name }}/server-files/ShooterGame/Saved/AllowedCheaterSteamIDs.txt"
+    owner: "{{ asa_user }}"
+    group: "{{ asa_group }}"
+    mode: '0644'
+  loop: "{{ maps }}"
+  loop_control:
+    label: "{{ item.map_name }}"
+
+# --- bring containers up ------------------------------------------------------
+# `up -d` is idempotent — recreates only when compose/env hashes change.
+
+- name: Bring map containers up
+  command: "docker compose -f {{ asa_compose_dir }}/{{ item.map_name }}.yml --env-file {{ asa_env_dir }}/{{ item.map_name }}.env up -d"
+  loop: "{{ maps }}"
+  loop_control:
+    label: "{{ item.map_name }}"
+  changed_when: false

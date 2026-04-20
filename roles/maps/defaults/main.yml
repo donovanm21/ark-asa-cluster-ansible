@@ -1,0 +1,21 @@
+---
+# Defaults for the maps role. Override any of these in
+# group_vars/gameservers.yml.
+
+taming_speed_multiplier: 4.5
+harvest_amount_multiplier: 2
+harvest_health_multiplier: 2
+xp_multiplier: 1
+max_tamed_dinos: 5000
+override_official_difficulty: 5
+player_damage_multiplier: 1.0
+pve_dino_decay_period_multiplier: 5
+pve_structure_decay_period_multiplier: 2.5
+resources_respawn_period_multiplier: 0.75
+
+motd_duration: 15
+
+# Optional flags appended to the server start params.
+# `-NoBattlEye` is convenient on Linux because BattlEye doesn't run under
+# Proton anyway. `-crossplay` enables EGS players in addition to Steam.
+asa_extra_start_flags: "-NoBattlEye -crossplay"

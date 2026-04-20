@@ -1,0 +1,53 @@
+#!/bin/bash
+# asa_rcon.sh — send an RCON command to one or all maps.
+# Rendered by ansible — edits will be overwritten on the next deploy.
+#
+# Usage:
+#   asa_rcon.sh <map_name|@all> "<command>"
+#
+# Example:
+#   asa_rcon.sh @all "broadcast Server restarting in 5 minutes"
+#   asa_rcon.sh TheIsland "destroywilddinos"
+
+set -uo pipefail
+
+ENV_DIR="{{ asa_env_dir }}"
+RCON_IMAGE="{{ asa_rcon_image }}"
+
+target=${1:-}
+cmd=${2:-}
+
+if [[ -z "$target" || -z "$cmd" ]]; then
+    echo "usage: $0 <map_name|@all> \"<command>\"" >&2
+    exit 64
+fi
+
+run_one() {
+    local env_file=$1 map pwd port
+    map=$(basename "$env_file" .env)
+    # shellcheck disable=SC1090
+    source "$env_file"
+    pwd=${ASA_ADMIN_PASSWORD:-}
+    port=${ASA_RCON_PORT:-}
+    if [[ -z "$pwd" || -z "$port" ]]; then
+        echo "[$map] missing ASA_ADMIN_PASSWORD or ASA_RCON_PORT in $env_file" >&2
+        return 1
+    fi
+    echo "[$map] $cmd"
+    docker run --rm --network=host "$RCON_IMAGE" \
+        -a "127.0.0.1:$port" -p "$pwd" "$cmd" 2>&1 || true
+}
+
+if [[ "$target" == "@all" ]]; then
+    for env_file in "$ENV_DIR"/*.env; do
+        [[ -f "$env_file" ]] || continue
+        run_one "$env_file"
+    done
+else
+    env_file="$ENV_DIR/$target.env"
+    if [[ ! -f "$env_file" ]]; then
+        echo "no env file for map '$target' at $env_file" >&2
+        exit 1
+    fi
+    run_one "$env_file"
+fi

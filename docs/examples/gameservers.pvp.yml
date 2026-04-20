@@ -1,0 +1,67 @@
+---
+# PvP example — closer-to-official progression, offline raid protection,
+# tighter limits. Copy to group_vars/gameservers.yml and edit.
+
+location: "US"
+server_tag: "MyCluster"
+server_mode: "PvP"
+
+# discord_webhook_url: "https://discord.com/api/webhooks/XXXXX/YYYYY"
+# banlist_url: "https://example.com/banlist.txt"
+
+# Closer to official rates — 2x feels fair, faster than that tilts the meta.
+taming_speed_multiplier: 2
+harvest_amount_multiplier: 2
+harvest_health_multiplier: 2
+xp_multiplier: 2
+max_tamed_dinos: 4000
+override_official_difficulty: 5
+player_damage_multiplier: 1.0
+
+# PvE decay knobs are ignored in PvP (PvPStructureDecay takes over).
+# Leave defaults; override only if you know you want to.
+pve_dino_decay_period_multiplier: 5
+pve_structure_decay_period_multiplier: 2.5
+resources_respawn_period_multiplier: 0.75
+
+motd_duration: 15
+motd_message: "PvP server — build smart, raid smarter. ORP enabled."
+
+enable_daily_restart: true
+daily_update_hour: 4
+enable_dino_wipe: false      # dino wipes on PvP are disruptive
+enable_watchdog: true
+watchdog_interval_minutes: 5
+
+# 3-map PvP cluster.
+maps:
+  - map_name_ark: "TheIsland_WP"
+    map_name: "TheIsland"
+    map_game_port: 7777
+    map_query_port: 27015
+    map_rcon_port: 27020
+    map_admin_password: "CHANGE_ME"
+    map_max_players: 70
+    map_mods_enabled: ""
+    cluster_name: "MyCluster_PvP"
+  - map_name_ark: "Aberration_WP"
+    map_name: "Aberration"
+    map_game_port: 7781
+    map_query_port: 27019
+    map_rcon_port: 27022
+    map_admin_password: "CHANGE_ME"
+    map_max_players: 70
+    map_mods_enabled: ""
+    cluster_name: "MyCluster_PvP"
+  - map_name_ark: "Extinction_WP"
+    map_name: "Extinction"
+    map_game_port: 7783
+    map_query_port: 27021
+    map_rcon_port: 27023
+    map_admin_password: "CHANGE_ME"
+    map_max_players: 70
+    map_mods_enabled: ""
+    cluster_name: "MyCluster_PvP"
+
+admins:
+  - 76561190000000001

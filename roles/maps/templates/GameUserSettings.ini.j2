@@ -1,0 +1,49 @@
+; GameUserSettings.ini — rendered by ansible for {{ item.map_name }}.
+; Edits made by hand will be overwritten. To override, drop a file at
+; config/maps/{{ item.map_name }}/GameUserSettings.ini in the playbook root.
+
+[ServerSettings]
+ServerAdminPassword={{ item.map_admin_password }}
+ServerPassword={{ item.map_server_password | default('') }}
+RCONEnabled=True
+RCONPort={{ item.map_rcon_port }}
+MaxPlayers={{ item.map_max_players }}
+ServerPVE={{ 'True' if server_mode == 'PvE' else 'False' }}
+ServerHardcore=False
+ServerCrosshair=True
+AllowThirdPersonPlayer=True
+ShowMapPlayerLocation=True
+ShowFloatingDamageText=True
+AllowFlyerCarryPvE=True
+AllowCaveBuildingPvE=False
+AllowRaidDinoFeeding=False
+AlwaysAllowStructurePickup=True
+AutoSavePeriodMinutes=15
+DifficultyOffset=1.0
+OverrideOfficialDifficulty={{ override_official_difficulty | default(5) }}
+HarvestAmountMultiplier={{ harvest_amount_multiplier | default(2) }}
+HarvestHealthMultiplier={{ harvest_health_multiplier | default(2) }}
+TamingSpeedMultiplier={{ taming_speed_multiplier | default(4.5) }}
+XPMultiplier={{ xp_multiplier | default(1) }}
+MaxTamedDinos={{ max_tamed_dinos | default(5000) }}
+PlayerDamageMultiplier={{ player_damage_multiplier | default(1.0) }}
+PvEDinoDecayPeriodMultiplier={{ pve_dino_decay_period_multiplier | default(5) }}
+PvEStructureDecayPeriodMultiplier={{ pve_structure_decay_period_multiplier | default(2.5) }}
+ResourcesRespawnPeriodMultiplier={{ resources_respawn_period_multiplier | default(0.75) }}
+PreventOfflinePvP={{ 'True' if server_mode == 'PvP' else 'False' }}
+DisableStructureDecayPvE=False
+DisableDinoDecayPvE=False
+KickIdlePlayersPeriod=3600
+{% if banlist_url is defined and banlist_url %}
+BanListURL={{ banlist_url }}
+{% endif %}
+
+[SessionSettings]
+SessionName={{ location }} {{ server_tag }} {{ item.map_name }} {{ server_mode }}
+
+[MessageOfTheDay]
+Duration={{ motd_duration | default(15) }}
+Message={{ motd_message | default("Welcome to " ~ location ~ " " ~ server_tag ~ " " ~ item.map_name ~ " " ~ server_mode) }}
+
+[/Script/Engine.GameSession]
+MaxPlayers={{ item.map_max_players }}

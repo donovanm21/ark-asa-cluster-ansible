@@ -1,0 +1,30 @@
+---
+# Project-wide defaults. Apply to every host in the inventory and are the
+# lowest-precedence source of truth for user/path identity.
+# Override in group_vars/gameservers.yml if you need a different layout.
+
+# System user that owns all ASA state on the host. Containers run as their
+# own internal `gameserver` user (uid 1000); this user owns the bind-mounts.
+asa_user: asa
+asa_group: asa
+
+# Home directory. Per-map data and the shared cluster directory live here.
+asa_home: "/home/{{ asa_user }}"
+
+# Per-map install + saves root. Each map gets its own subtree:
+#   {{ asa_data_root }}/<map>/server-files     (game install + saves + per-map config)
+#   {{ asa_data_root }}/<map>/steam            (Steam runtime cache)
+#   {{ asa_data_root }}/<map>/steamcmd         (steamcmd cache)
+asa_data_root: "{{ asa_home }}/instances"
+
+# Shared cluster directory. Bind-mounted into every container so cross-map
+# transfers (uploaded characters, dinos, items) resolve against one tree.
+asa_cluster_root: "{{ asa_home }}/cluster"
+
+# Docker compose files (one per map) and per-map env files live here.
+asa_compose_dir: /etc/asa-cluster/compose
+asa_env_dir: /etc/asa-cluster/env
+
+# Container image. ASA has no native Linux server binary; this image runs
+# the Windows server under Proton. Pin to a digest for reproducibility.
+asa_image: "mschnitzer/asa-linux-server:latest"

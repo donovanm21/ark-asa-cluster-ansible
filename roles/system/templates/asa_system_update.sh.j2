@@ -1,0 +1,55 @@
+#!/bin/bash
+# asa_system_update.sh — daily restart + image-pull pipeline.
+# Rendered by ansible — edits will be overwritten on the next deploy.
+#
+# Flow:
+#   1. Broadcast 10/5/1-minute warnings.
+#   2. RCON `saveworld` then `doexit` per map (clean shutdown).
+#   3. docker compose down (in case any container ignored doexit).
+#   4. tar the cluster directory + per-map saves into ~/backups/.
+#   5. docker pull the image.
+#   6. Bring every map back up with a stagger.
+
+set -u
+
+COMPOSE_DIR="{{ asa_compose_dir }}"
+ENV_DIR="{{ asa_env_dir }}"
+RCON="{{ asa_home }}/bin/asa_rcon.sh"
+BACKUP_DIR="{{ asa_home }}/backups"
+DATA_ROOT="{{ asa_data_root }}"
+CLUSTER_ROOT="{{ asa_cluster_root }}"
+IMAGE="{{ asa_image }}"
+
+mkdir -p "$BACKUP_DIR"
+
+"$RCON" @all "broadcast Server restart in 10 mins, server update required" || true
+sleep 5m
+"$RCON" @all "broadcast Server restart in 5 mins, server update required" || true
+sleep 4m
+"$RCON" @all "broadcast Server restart in 1 min, server update required" || true
+sleep 1m
+
+"$RCON" @all "saveworld" || true
+sleep 15
+"$RCON" @all "doexit" || true
+sleep 30
+
+# Force-stop anything still up.
+{% for item in maps %}
+docker compose -f "$COMPOSE_DIR/{{ item.map_name }}.yml" --env-file "$ENV_DIR/{{ item.map_name }}.env" down || true
+{% endfor %}
+
+stamp=$(date +%Y-%m-%d)
+tar -cf "$BACKUP_DIR/cluster_$stamp.tar" -C "$(dirname "$CLUSTER_ROOT")" "$(basename "$CLUSTER_ROOT")" || true
+{% for item in maps %}
+tar -cf "$BACKUP_DIR/{{ item.map_name }}_saves_$stamp.tar" \
+    -C "$DATA_ROOT/{{ item.map_name }}/server-files/ShooterGame/Saved" . || true
+{% endfor %}
+
+docker pull "$IMAGE" || true
+
+# Stagger startups so the host isn't slammed.
+{% for item in maps %}
+docker compose -f "$COMPOSE_DIR/{{ item.map_name }}.yml" --env-file "$ENV_DIR/{{ item.map_name }}.env" up -d
+sleep 30
+{% endfor %}

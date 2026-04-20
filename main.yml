@@ -1,0 +1,15 @@
+---
+- name: Deploy ASA cluster
+  hosts: gameservers
+  connection: local
+  become: true
+
+  roles:
+    - role: provision
+      tags: [provision, bootstrap]
+    - role: docker
+      tags: [docker, bootstrap]
+    - role: maps
+      tags: [maps, config]
+    - role: system
+      tags: [system, config]

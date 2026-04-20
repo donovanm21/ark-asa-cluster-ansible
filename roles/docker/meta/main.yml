@@ -1,0 +1,15 @@
+---
+galaxy_info:
+  role_name: docker
+  author: ark-asa-cluster-ansible contributors
+  description: Install Docker Engine + compose plugin and pre-pull the ASA image.
+  license: MIT
+  min_ansible_version: "2.10"
+  platforms:
+    - name: Ubuntu
+      versions: [jammy, noble]
+    - name: Debian
+      versions: [bookworm]
+  galaxy_tags: [docker, asa, gaming]
+
+dependencies: []

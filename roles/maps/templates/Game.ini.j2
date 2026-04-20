@@ -1,0 +1,34 @@
+; Game.ini — rendered by ansible for {{ item.map_name }}.
+; Minimal, opinion-light defaults. To override, drop a file at
+; config/Game.ini in the playbook root (applied to every map after render).
+
+[/Script/ShooterGame.ShooterGameMode]
+bUseSingleplayerSettings=False
+bAllowUnlimitedRespecs=True
+bAllowFlyerSpeedLeveling=True
+bAllowPlatformSaddleMultiFloors=True
+bAllowCustomRecipes=True
+bDisableFriendlyFire={{ 'False' if server_mode == 'PvP' else 'True' }}
+bAutoPvETimer={{ 'True' if server_mode == 'PvE' else 'False' }}
+bPvEAllowTribeWar={{ pve_allow_tribe_war | default('False') }}
+bPvEDisableFriendlyFire={{ pve_disable_friendly_fire | default('True') }}
+MaxNumberOfPlayersInTribe={{ max_tribe_size | default(8) }}
+MaxAlliancesPerTribe=4
+MaxTribesPerAlliance=4
+
+BabyMatureSpeedMultiplier={{ baby_mature_speed_multiplier | default(8) }}
+BabyImprintAmountMultiplier={{ baby_imprint_amount_multiplier | default(4) }}
+BabyCuddleIntervalMultiplier={{ baby_cuddle_interval_multiplier | default(0.75) }}
+EggHatchSpeedMultiplier={{ egg_hatch_speed_multiplier | default(8) }}
+MatingIntervalMultiplier={{ mating_interval_multiplier | default(0.25) }}
+
+CraftXPMultiplier={{ craft_xp_multiplier | default(4.5) }}
+GenericXPMultiplier={{ generic_xp_multiplier | default(4.5) }}
+HarvestXPMultiplier={{ harvest_xp_multiplier | default(4.5) }}
+KillXPMultiplier={{ kill_xp_multiplier | default(4.5) }}
+SpecialXPMultiplier={{ special_xp_multiplier | default(4.5) }}
+
+[/Script/Engine.GameNetworkManager]
+MaxDynamicBandwidth=224694
+MinDynamicBandwidth=10485
+TotalNetBandwidth=1572864

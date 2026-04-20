@@ -1,0 +1,15 @@
+---
+galaxy_info:
+  role_name: system
+  author: ark-asa-cluster-ansible contributors
+  description: Lifecycle automation — daily restart/update, backups, watchdog, crontab, logrotate for ASA containers.
+  license: MIT
+  min_ansible_version: "2.10"
+  platforms:
+    - name: Ubuntu
+      versions: [jammy, noble]
+    - name: Debian
+      versions: [bookworm]
+  galaxy_tags: [ark, asa, gaming, docker, automation]
+
+dependencies: []
