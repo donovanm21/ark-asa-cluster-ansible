@@ -42,6 +42,36 @@
     uid: 25000
     group: "{{ asa_group }}"
 
+# Disable split-lock mitigation. The ASA Windows server (and SteamCMD)
+# run under Wine/Proton and issue x86 split-lock atomics from 32-bit
+# code; the default mitigation (rate-limit, value=1) sleeps the offending
+# thread for ~10 ms per trap, which under heavy load (map-load, content
+# download) cumulatively stalls the entire VM and triggers a hypervisor
+# watchdog freeze. See: https://docs.kernel.org/x86/buslock.html
+- name: Disable split-lock mitigation (Wine/Proton needs warn-only)
+  ansible.posix.sysctl:
+    name: kernel.split_lock_mitigate
+    value: '0'
+    state: present
+    sysctl_file: /etc/sysctl.d/99-asa-split-lock.conf
+    reload: true
+  ignore_errors: true   # ansible.posix may not be installed; fall through
+
+- name: Disable split-lock mitigation (fallback when ansible.posix unavailable)
+  copy:
+    dest: /etc/sysctl.d/99-asa-split-lock.conf
+    content: |
+      # Wine/Proton runs 32-bit Windows binaries (ASA + SteamCMD) that issue
+      # split-lock atomics; the default rate-limit (=1) stalls the VM under load.
+      kernel.split_lock_mitigate = 0
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Apply split-lock sysctl
+  command: sysctl -p /etc/sysctl.d/99-asa-split-lock.conf
+  changed_when: false
+
 # NOPASSWD sudo is a convenience for cron-driven docker compose lifecycle
 # commands. Scope it to a drop-in so it's easy to audit and revert.
 - name: Grant passwordless sudo to the asa user
