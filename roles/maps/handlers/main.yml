@@ -2,7 +2,11 @@
 # When config or compose changes for a map, recreate that map's container.
 # `up -d` is a no-op when nothing changed and a recreate when something did.
 - name: restart map
-  command: "docker compose -f {{ asa_compose_dir }}/{{ item.map_name }}.yml --env-file {{ asa_env_dir }}/{{ item.map_name }}.env up -d --force-recreate"
+  # `up -d` (without --force-recreate) only recreates the container when
+  # the compose hash or env-file changed. Plain ini-only changes don't
+  # touch either, so the running ARK server stays up — this matters
+  # because a recreate forces the ~10 min Proton/SteamCMD/map-load cycle.
+  command: "docker compose -f {{ asa_compose_dir }}/{{ item.map_name }}.yml --env-file {{ asa_env_dir }}/{{ item.map_name }}.env up -d"
   loop: "{{ maps }}"
   loop_control:
     label: "{{ item.map_name }}"
