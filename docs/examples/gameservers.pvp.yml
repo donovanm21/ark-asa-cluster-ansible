@@ -53,6 +53,7 @@ maps:
     map_max_players: 70
     map_mods_enabled: ""
     cluster_name: "MyCluster_PvP"
+    map_seed_from: "TheIsland"
   - map_name_ark: "Extinction_WP"
     map_name: "Extinction"
     map_game_port: 7783
@@ -62,6 +63,7 @@ maps:
     map_max_players: 70
     map_mods_enabled: ""
     cluster_name: "MyCluster_PvP"
+    map_seed_from: "TheIsland"
 
 admins:
   - 76561190000000001

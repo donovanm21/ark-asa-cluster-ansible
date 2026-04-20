@@ -68,6 +68,115 @@
     - { path: "{{ asa_compose_dir }}", group: root, mode: '0755' }
     - { path: "{{ asa_env_dir }}",     group: "{{ asa_group }}", mode: '0750' }
 
+# --- hardlink seeding (optional) ----------------------------------------------
+# Per-map: if `map_seed_from: <other_map_short_name>` is set AND the source map
+# is fully installed AND this map's server-files doesn't exist yet, hardlink-
+# clone the source into this map. Saves ~13 GB disk + ~15 min wall time per
+# added map (no SteamCMD re-download). The ASA dedicated server install
+# already contains every official map's content, so no map-specific download
+# is needed once one map is fully installed.
+#
+# Per-map writable areas are stripped from the clone after copy so each
+# container starts with a clean Saved dir and its own Wine prefix.
+
+- name: Stat per-map server-files (decide whether to seed)
+  stat:
+    path: "{{ asa_data_root }}/{{ item.map_name }}/server-files/ShooterGame/Binaries/Win64/ArkAscendedServer.exe"
+  loop: "{{ maps }}"
+  loop_control:
+    label: "{{ item.map_name }}"
+  register: _server_files_stat
+
+- name: Stat seed-source server-files
+  stat:
+    path: "{{ asa_data_root }}/{{ item.map_seed_from }}/server-files/ShooterGame/Binaries/Win64/ArkAscendedServer.exe"
+  loop: "{{ maps }}"
+  loop_control:
+    label: "{{ item.map_name }} from={{ item.map_seed_from | default('-') }}"
+  when: item.map_seed_from is defined and item.map_seed_from
+  register: _seed_source_stat
+
+- name: Hardlink-clone server-files from seed source
+  # cp -al recurses with hardlinks; instant, near-zero IO, and the only
+  # disk cost is the metadata for the new directory tree.
+  command: "cp -al {{ asa_data_root }}/{{ item.item.map_seed_from }}/server-files {{ asa_data_root }}/{{ item.item.map_name }}/server-files"
+  loop: "{{ _seed_source_stat.results }}"
+  loop_control:
+    label: "{{ item.item.map_name }} <- {{ item.item.map_seed_from | default('-') }}"
+  when:
+    - item.item.map_seed_from is defined and item.item.map_seed_from
+    - item.stat.exists | default(false)
+    - not (_server_files_stat.results
+           | selectattr('item.map_name', 'equalto', item.item.map_name)
+           | map(attribute='stat.exists')
+           | first)
+  changed_when: true
+
+- name: Hardlink-clone steam cache from seed source
+  command: "cp -al {{ asa_data_root }}/{{ item.item.map_seed_from }}/steam {{ asa_data_root }}/{{ item.item.map_name }}/steam"
+  loop: "{{ _seed_source_stat.results }}"
+  loop_control:
+    label: "{{ item.item.map_name }}"
+  when:
+    - item.item.map_seed_from is defined and item.item.map_seed_from
+    - item.stat.exists | default(false)
+    - not (_server_files_stat.results
+           | selectattr('item.map_name', 'equalto', item.item.map_name)
+           | map(attribute='stat.exists')
+           | first)
+  changed_when: true
+  failed_when: false
+
+- name: Hardlink-clone steamcmd cache from seed source
+  command: "cp -al {{ asa_data_root }}/{{ item.item.map_seed_from }}/steamcmd {{ asa_data_root }}/{{ item.item.map_name }}/steamcmd"
+  loop: "{{ _seed_source_stat.results }}"
+  loop_control:
+    label: "{{ item.item.map_name }}"
+  when:
+    - item.item.map_seed_from is defined and item.item.map_seed_from
+    - item.stat.exists | default(false)
+    - not (_server_files_stat.results
+           | selectattr('item.map_name', 'equalto', item.item.map_name)
+           | map(attribute='stat.exists')
+           | first)
+  changed_when: true
+  failed_when: false
+
+- name: Strip cloned ShooterGame/Saved (force per-map fresh)
+  # Saved/ and compatdata/ MUST be per-map (saves + Wine prefix). The clone
+  # inherits them from the source via hardlinks; remove them so each map
+  # starts clean. Game.ini/GameUserSettings.ini get re-rendered below.
+  file:
+    path: "{{ asa_data_root }}/{{ item.item.map_name }}/server-files/ShooterGame/Saved"
+    state: absent
+  loop: "{{ _seed_source_stat.results }}"
+  loop_control:
+    label: "{{ item.item.map_name }}"
+  when:
+    - item.item.map_seed_from is defined and item.item.map_seed_from
+    - item.stat.exists | default(false)
+    - not (_server_files_stat.results
+           | selectattr('item.map_name', 'equalto', item.item.map_name)
+           | map(attribute='stat.exists')
+           | first)
+
+- name: Strip cloned steamapps/compatdata (force per-map Wine prefix)
+  file:
+    path: "{{ asa_data_root }}/{{ item.item.map_name }}/server-files/steamapps/compatdata"
+    state: absent
+  loop: "{{ _seed_source_stat.results }}"
+  loop_control:
+    label: "{{ item.item.map_name }}"
+  when:
+    - item.item.map_seed_from is defined and item.item.map_seed_from
+    - item.stat.exists | default(false)
+    - not (_server_files_stat.results
+           | selectattr('item.map_name', 'equalto', item.item.map_name)
+           | map(attribute='stat.exists')
+           | first)
+
+# --- normal directory creation ------------------------------------------------
+
 - name: Create per-map data directories
   file:
     path: "{{ asa_data_root }}/{{ item.0.map_name }}/{{ item.1 }}"

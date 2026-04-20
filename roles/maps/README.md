@@ -19,6 +19,13 @@ Set in `group_vars/gameservers.yml` (see [docs/examples/](../../docs/examples/) 
 - `maps:` list, each entry with `map_name_ark` (UE map name, e.g. `TheIsland_WP`), `map_name` (short label), `map_game_port`, `map_query_port`, `map_rcon_port`, `map_admin_password`, `map_max_players`, `map_mods_enabled` (CurseForge IDs, comma-separated), `cluster_name`
 - `admins:` list of 17-digit SteamIDs (may be empty)
 
+## Optional per-map fields
+
+| Field | Purpose |
+|---|---|
+| `map_server_password` | Sets a join password (default: open) |
+| `map_seed_from` | Short name (`map_name`) of an already-installed map. The playbook hardlink-clones that map's `server-files`, `steam`, and `steamcmd` instead of doing a fresh ~13 GB SteamCMD download. The ASA dedicated server install contains every official map's content, so one full install is enough for the whole cluster. Only triggers when this map's `server-files` doesn't already exist. |
+
 ## Tunable gameplay defaults
 
 `taming_speed_multiplier`, `harvest_amount_multiplier`, `harvest_health_multiplier`, `xp_multiplier`, `max_tamed_dinos`, `override_official_difficulty`, `player_damage_multiplier`, `pve_dino_decay_period_multiplier`, `pve_structure_decay_period_multiplier`, `resources_respawn_period_multiplier`, `motd_duration`, `motd_message`, `asa_extra_start_flags`.
@@ -46,9 +53,18 @@ The role discovers existing per-map compose files on disk and compares against t
 
 Save data under `{{ asa_data_root }}/<map>/server-files/ShooterGame/Saved/` is preserved, so re-adding a map later resumes from the last save.
 
+## Restart policy
+
+The rendered compose file uses `restart: "no"` (deliberately not `unless-stopped`). After a host reboot, simultaneous map-loads have been observed to bury the hypervisor I/O queue and freeze the VM. Lifecycle is owned instead by:
+
+- `asa_map_start.sh` at `@reboot` — staggered (30 s between maps)
+- `asa_watchdog.sh` every 5 min — sole crash-recovery mechanism
+
+The trade-off: a crashed container takes up to 5 min to recover instead of being instantly restarted by docker. For a homelab cluster that's fine; for a production deploy you may want to tighten `watchdog_interval_minutes` to 1.
+
 ## Handlers
 
-- `restart map` — runs `docker compose up -d --force-recreate` for every currently-configured map. Notified when any of the compose, env, or ini files change.
+- `restart map` — runs `docker compose up -d` for every currently-configured map. Notified when compose or env files change. Compose's hash-diff means containers are only recreated when something actually changed, so handler runs are cheap when nothing material changed.
 
 ## Notes on the bundled INI templates
 

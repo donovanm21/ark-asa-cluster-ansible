@@ -58,6 +58,7 @@ maps:
     map_max_players: 70
     map_mods_enabled: ""
     cluster_name: "MyCluster_PvE"
+    map_seed_from: "TheIsland"   # hardlink-clone TheIsland's install
   - map_name_ark: "TheCenter_WP"
     map_name: "TheCenter"
     map_game_port: 7785
@@ -67,6 +68,7 @@ maps:
     map_max_players: 70
     map_mods_enabled: ""
     cluster_name: "MyCluster_PvE"
+    map_seed_from: "TheIsland"   # hardlink-clone TheIsland's install
 
 # Players granted in-game admin (cheat commands). 17-digit SteamIDs.
 admins:

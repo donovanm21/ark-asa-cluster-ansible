@@ -25,6 +25,7 @@ It's a self-hosted alternative to commercial offerings (Nitrado, GPortal): you b
 - **One flag** (`server_mode: PvE | PvP`) flips the relevant `.ini` switches for your play style
 - **Containerised runtime** — every map is a separate `docker compose` stack on top of [`mschnitzer/asa-linux-server`](https://hub.docker.com/r/mschnitzer/asa-linux-server) (the Windows server under Proton). No `arkmanager`, no native binary juggling
 - **Built-in mod support** — list CurseForge mod IDs in `map_mods_enabled` and ASA's official mod system downloads them on container start
+- **Hardlink seeding** — point a new map at an already-installed one (`map_seed_from: TheIsland`) and the playbook hardlink-clones the install instead of doing a fresh ~13 GB SteamCMD download. The bootstrap wizard sets this automatically for maps 2..N. One full install = your whole cluster, on disk.
 - **Fully automated lifecycle** — the cluster keeps itself alive after `ansible-playbook` exits:
   - Daily restart + tar-backup + image-pull pipeline (with in-game RCON broadcasts)
   - Hourly image-update check — when `docker pull` reports a new digest, the daily pipeline kicks

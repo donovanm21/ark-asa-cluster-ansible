@@ -32,7 +32,14 @@ services:
     # override the container exits immediately on boot. start_server lives
     # in the image at /usr/bin/start_server and reads ASA_START_PARAMS.
     entrypoint: /usr/bin/start_server
-    restart: unless-stopped
+    # `no` (not `unless-stopped`) is deliberate: with `unless-stopped` the
+    # docker daemon brings every map back up the instant it starts after
+    # a host reboot, simultaneously, which has been observed to bury the
+    # hypervisor's I/O queue under parallel ASA map-loads and freeze the
+    # VM. Lifecycle is owned by:
+    #   - asa_map_start.sh @reboot (staggered, 30 s between maps)
+    #   - asa_watchdog.sh */5min   (re-up dead containers; sole crash recovery)
+    restart: "no"
     # Match the image's internal `gameserver` user (uid/gid 25000); the host
     # asa user is pinned to 25000 by the provision role so bind-mount
     # ownership lines up.

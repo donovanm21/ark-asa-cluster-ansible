@@ -367,7 +367,13 @@ watchdog_interval_minutes: 5
 maps:
 COMMON
 
-        local ark_name entry an display game_p query_p rcon_p
+        # Auto-seed: maps 2..N get map_seed_from: <map 1's short name> so the
+        # playbook hardlink-clones the first map's install instead of doing
+        # a fresh ~13 GB SteamCMD download per added map. The ASA dedicated
+        # server install contains every official map's content, so one full
+        # install is enough for the whole cluster.
+        local ark_name entry an display game_p query_p rcon_p first_short=""
+        local idx=0
         for ark_name in "${WIZ_MAPS[@]}"; do
             for entry in "${MAP_CATALOG[@]}"; do
                 IFS='|' read -r an display game_p query_p rcon_p _ <<<"$entry"
@@ -383,6 +389,12 @@ COMMON
     map_mods_enabled: ""
     cluster_name: "$WIZ_CLUSTER"
 MAP
+                    if (( idx == 0 )); then
+                        first_short="$display"
+                    else
+                        printf '    map_seed_from: "%s"\n' "$first_short"
+                    fi
+                    idx=$((idx + 1))
                     break
                 fi
             done

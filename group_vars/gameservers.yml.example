@@ -33,6 +33,12 @@ server_mode: "PvE"        # "PvE" or "PvP"
 # map_mods_enabled is a comma-separated list of CurseForge mod IDs (numeric);
 # ASA's built-in mod system downloads them via -mods= on container start.
 # cluster_name groups maps that share tames/players via cross-map transfer.
+#
+# map_seed_from (optional): short name (`map_name`) of an already-installed
+# map on this host. The playbook will hardlink-clone that map's server-files
+# instead of doing a fresh ~13 GB SteamCMD download. The ASA dedicated server
+# install contains every official map's content, so one full install is enough
+# for the whole cluster. Only used when this map's server-files don't exist.
 maps:
   - map_name_ark: "TheIsland_WP"
     map_name: "TheIsland"
