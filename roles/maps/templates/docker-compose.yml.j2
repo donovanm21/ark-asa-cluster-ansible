@@ -33,7 +33,10 @@ services:
     # in the image at /usr/bin/start_server and reads ASA_START_PARAMS.
     entrypoint: /usr/bin/start_server
     restart: unless-stopped
-    user: "1000:1000"
+    # Match the image's internal `gameserver` user (uid/gid 25000); the host
+    # asa user is pinned to 25000 by the provision role so bind-mount
+    # ownership lines up.
+    user: "25000:25000"
     stop_grace_period: 60s
     environment:
       ASA_START_PARAMS: '{{ start_params }}'

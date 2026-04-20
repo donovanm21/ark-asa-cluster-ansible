@@ -3,15 +3,15 @@
 Bootstraps the target host for running ASA containers:
 
 1. Installs base dependencies: `htop`, `git`, `curl`, `lsof`, `bzip2`, `ca-certificates`, `jq`, `tar`.
-2. Creates the asa server user (`{{ asa_user }}`, default `asa`) with home `{{ asa_home }}`, pinned to uid/gid 1000 so its uid matches the container's internal `gameserver` user.
+2. Creates the asa server user (`{{ asa_user }}`, default `asa`) with home `{{ asa_home }}`, pinned to uid/gid 25000 so its uid matches the container's internal `gameserver` user.
 3. Drops a NOPASSWD sudo rule into `/etc/sudoers.d/{{ asa_user }}` (gated on `manage_sudoers`).
 4. Purges UFW (gated on `manage_firewall`).
 
 The `asa` user is added to the `docker` group by the `docker` role (after `docker-ce` installs and creates the group).
 
-## Why uid 1000?
+## Why uid 25000?
 
-The `mschnitzer/asa-linux-server` image runs as an internal user `gameserver` (uid 1000). All host bind-mounts (`{{ asa_data_root }}/<map>/`) must be owned by uid 1000 or the server can't write its saves. Pinning the host `asa` user to uid 1000 makes the mapping 1:1 and avoids needing user-namespace remapping.
+The `mschnitzer/asa-linux-server` image runs as an internal user `gameserver` (uid 25000). All host bind-mounts (`{{ asa_data_root }}/<map>/`) must be owned by uid 25000 or the server can't read/write `/home/gameserver` inside the container. Pinning the host `asa` user to uid 25000 makes the mapping 1:1 and avoids needing user-namespace remapping.
 
 ## Variables
 

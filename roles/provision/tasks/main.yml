@@ -27,20 +27,20 @@
     shell: /bin/bash
     state: present
 
-# The container image's internal user is uid/gid 1000. The host bind-mount
-# owner must match or the server can't write saves. We force the host user
-# to 1000 so the mapping is 1:1 without needing remap-userns juggling.
-- name: Pin asa user uid to 1000 for container bind-mount mapping
-  user:
-    name: "{{ asa_user }}"
-    uid: 1000
-    group: "{{ asa_group }}"
-  ignore_errors: false
-
-- name: Pin asa group gid to 1000 for container bind-mount mapping
+# The container image's internal user is `gameserver` at uid/gid 25000.
+# The host bind-mount owner must match that uid or the server can't read
+# /home/gameserver inside the container. We pin the host asa user to 25000
+# so the mapping is 1:1 without needing user-namespace remapping.
+- name: Pin asa group gid to 25000 (matches container's gameserver group)
   group:
     name: "{{ asa_group }}"
-    gid: 1000
+    gid: 25000
+
+- name: Pin asa user uid to 25000 (matches container's gameserver user)
+  user:
+    name: "{{ asa_user }}"
+    uid: 25000
+    group: "{{ asa_group }}"
 
 # NOPASSWD sudo is a convenience for cron-driven docker compose lifecycle
 # commands. Scope it to a drop-in so it's easy to audit and revert.
