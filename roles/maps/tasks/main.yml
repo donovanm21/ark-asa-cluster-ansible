@@ -65,8 +65,8 @@
     group: "{{ item.group }}"
     mode: "{{ item.mode }}"
   loop:
-    - { path: "{{ asa_compose_dir }}", group: root, mode: '0755' }
-    - { path: "{{ asa_env_dir }}",     group: "{{ asa_group }}", mode: '0750' }
+    - { path: "{{ asa_compose_dir }}", group: "root", mode: '0755' }
+    - { path: "{{ asa_env_dir }}", group: "{{ asa_group }}", mode: '0750' }
 
 # --- hardlink seeding (optional) ----------------------------------------------
 # Per-map: if `map_seed_from: <other_map_short_name>` is set AND the source map
